@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  name        String?
+  rollNumber  String?  @map("roll_number")
+  avatar      String?  @default("/placeholder.svg?height=48&width=48")
+  rating      Float    @default(5.0)
+  totalRides  Int      @default(0) @map("total_rides")
+  isVerified  Boolean  @default(true) @map("is_verified")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  ridesOffered Ride[]    @relation("DriverRides")
+  bookings     Booking[] @relation("PassengerBookings")
+
+  @@map("users")
+}
+
+model Ride {
+  id             String   @id @default(cuid())
+  driverId       String   @map("driver_id")
+  pickup         String
+  dropoff        String
+  departureTime  DateTime @map("departure_time")
+  availableSeats Int      @map("available_seats")
+  totalSeats     Int      @map("total_seats")
+  price          Int      @default(0)
+  route          String
+  isRecurring    Boolean  @default(false) @map("is_recurring")
+  recurringDays  String[] @default([]) @map("recurring_days")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  driver   User      @relation("DriverRides", fields: [driverId], references: [id], onDelete: Cascade)
+  bookings Booking[] @relation("RideBookings")
+
+  @@map("rides")
+}
+
+model Booking {
+  id          String   @id @default(cuid())
+  rideId      String   @map("ride_id")
+  passengerId String   @map("passenger_id")
+  status      String   @default("confirmed")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  ride      Ride @relation("RideBookings", fields: [rideId], references: [id], onDelete: Cascade)
+  passenger User @relation("PassengerBookings", fields: [passengerId], references: [id], onDelete: Cascade)
+
+  @@unique([rideId, passengerId])
+  @@map("bookings")
+}
